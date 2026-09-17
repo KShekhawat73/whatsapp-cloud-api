@@ -1,6 +1,5 @@
 const express = require('express');
 const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
 
 const app = express();
 app.use(express.json());
@@ -15,10 +14,10 @@ const client = new Client({
 });
 
 client.on('qr', (qr) => {
-    console.log('====================================');
-    console.log('NEECHE DIYE GAYE QR KO SCAN KAREIN:');
-    qrcode.generate(qr, { small: true });
-    console.log('====================================');
+    console.log('======================================================================');
+    console.log('✅ Naya PERFECT QR code dekhne ke liye niche diye gaye link par click karein:');
+    console.log('https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=' + encodeURIComponent(qr));
+    console.log('======================================================================');
 });
 
 client.on('ready', () => {
