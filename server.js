@@ -4,7 +4,13 @@ const { Client, LocalAuth } = require('whatsapp-web.js');
 const app = express();
 app.use(express.json());
 
-// Stable Puppeteer args for Render Cloud
+const PORT = process.env.PORT || 10000;
+
+// 1. Pehle Express server ko bind karein taaki Render ko port turant mil jaye
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server started on port ${PORT}`);
+});
+
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
@@ -46,10 +52,13 @@ client.on('disconnected', (reason) => {
     console.log('Client was disconnected:', reason);
 });
 
-// Initialize client with error catching to prevent crash loops
-client.initialize().catch(err => {
-    console.error('Initialization error:', err);
-});
+// 2. 3 seconds ke delay ke baad WhatsApp initialize karein (Port timeout bachane ke liye)
+setTimeout(() => {
+    console.log('Initializing WhatsApp client...');
+    client.initialize().catch(err => {
+        console.error('Initialization error:', err);
+    });
+}, 3000);
 
 app.post('/send-message', async (req, res) => {
     if (!isReady) {
@@ -71,6 +80,3 @@ app.post('/send-message', async (req, res) => {
         res.status(500).json({ status: 'Error', error: error.toString() });
     }
 });
-
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
