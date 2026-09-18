@@ -24,6 +24,7 @@ const client = new Client({
             '--disable-accelerated-2d-canvas',
             '--no-first-run',
             '--no-zygote',
+            '--single-process', // Low RAM crash bachane ke liye
             '--disable-gpu'
         ]
     }
@@ -57,7 +58,11 @@ setTimeout(() => {
     });
 }, 3000);
 
-// Browser mein seedha QR code dekhne ke liye route (/qr)
+// Status check route
+app.get('/status', (req, res) => {
+    res.json({ isReady: isReady });
+});
+
 app.get('/qr', (req, res) => {
     if (isReady) {
         res.send('<h2>✅ WhatsApp is already connected and ready!</h2>');
@@ -65,16 +70,16 @@ app.get('/qr', (req, res) => {
         res.send(`
             <h2>Apne WhatsApp se yeh QR code scan karein:</h2>
             <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(latestQR)}" alt="QR Code"/>
-            <p>Page ko har 5 second mein refresh karein agar scan na ho.</p>
+            <p>Page ko refresh karein agar scan na ho.</p>
         `);
     } else {
-        res.send('<h2>QR code generate ho raha hai, 10 second baad page refresh karein...</h2>');
+        res.send('<h2>QR code generate ho raha hai, thodi der wait karein...</h2>');
     }
 });
 
 app.post('/send-message', async (req, res) => {
     if (!isReady) {
-        return res.status(500).json({ status: 'Error', error: 'WhatsApp client not ready yet' });
+        return res.status(500).json({ status: 'Error', error: 'Not Connected' });
     }
     
     const { number, message } = req.body;
@@ -85,7 +90,7 @@ app.post('/send-message', async (req, res) => {
     try {
         const formattedNumber = `${number}@c.us`;
         await client.sendMessage(formattedNumber, message);
-        res.status(200).json({ status: 'success' });
+        res.status(200).json({ status: 'Success' });
     } catch (error) {
         res.status(500).json({ status: 'Error', error: error.toString() });
     }
