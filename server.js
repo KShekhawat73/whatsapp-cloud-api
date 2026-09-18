@@ -43,10 +43,12 @@ client.on('ready', () => {
 
 client.on('auth_failure', (msg) => {
     isReady = false;
+    console.error('Authentication failure:', msg);
 });
 
 client.on('disconnected', (reason) => {
     isReady = false;
+    console.log('Client was disconnected:', reason);
 });
 
 setTimeout(() => {
@@ -55,7 +57,7 @@ setTimeout(() => {
     });
 }, 3000);
 
-// Naya Web Page route jahan seedha QR code dikhega
+// Browser mein seedha QR code dekhne ke liye route (/qr)
 app.get('/qr', (req, res) => {
     if (isReady) {
         res.send('<h2>✅ WhatsApp is already connected and ready!</h2>');
