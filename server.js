@@ -6,7 +6,9 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 10000;
 
-// 1. Pehle Express server ko bind karein taaki Render ko port turant mil jaye
+let latestQR = '';
+let isReady = false;
+
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server started on port ${PORT}`);
 });
@@ -27,38 +29,46 @@ const client = new Client({
     }
 });
 
-let isReady = false;
-
 client.on('qr', (qr) => {
+    latestQR = qr;
     isReady = false;
-    console.log('====================================');
-    console.log('Naya PERFECT QR code dekhne ke liye niche diye gaye link par click karein:');
-    console.log(`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qr)}`);
-    console.log('====================================');
+    console.log('QR Code generated!');
 });
 
 client.on('ready', () => {
     isReady = true;
-    console.log('✅ Client is ready! WhatsApp Cloud se connect ho gaya hai.');
+    latestQR = '';
+    console.log('✅ Client is ready!');
 });
 
 client.on('auth_failure', (msg) => {
     isReady = false;
-    console.error('Authentication failure:', msg);
 });
 
 client.on('disconnected', (reason) => {
     isReady = false;
-    console.log('Client was disconnected:', reason);
 });
 
-// 2. 3 seconds ke delay ke baad WhatsApp initialize karein (Port timeout bachane ke liye)
 setTimeout(() => {
-    console.log('Initializing WhatsApp client...');
     client.initialize().catch(err => {
-        console.error('Initialization error:', err);
+        console.error('Init error:', err);
     });
 }, 3000);
+
+// Naya Web Page route jahan seedha QR code dikhega
+app.get('/qr', (req, res) => {
+    if (isReady) {
+        res.send('<h2>✅ WhatsApp is already connected and ready!</h2>');
+    } else if (latestQR) {
+        res.send(`
+            <h2>Apne WhatsApp se yeh QR code scan karein:</h2>
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(latestQR)}" alt="QR Code"/>
+            <p>Page ko har 5 second mein refresh karein agar scan na ho.</p>
+        `);
+    } else {
+        res.send('<h2>QR code generate ho raha hai, 10 second baad page refresh karein...</h2>');
+    }
+});
 
 app.post('/send-message', async (req, res) => {
     if (!isReady) {
@@ -73,10 +83,8 @@ app.post('/send-message', async (req, res) => {
     try {
         const formattedNumber = `${number}@c.us`;
         await client.sendMessage(formattedNumber, message);
-        console.log(`Message sent to ${number}`);
         res.status(200).json({ status: 'success' });
     } catch (error) {
-        console.error('Send error:', error);
         res.status(500).json({ status: 'Error', error: error.toString() });
     }
 });
